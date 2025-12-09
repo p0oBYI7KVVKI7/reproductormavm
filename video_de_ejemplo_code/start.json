@@ -1,0 +1,13 @@
+{
+    "start": [
+        {"menu": ["create", "menu1"]},
+        {"menu1": [{"resolution": [1920,1080]}]},
+        {"menu1": [{"text": ["coordinates",0,75,1920,75, "text","hola :D"]}]},
+        {"menu1": [{"image": ["create","img1", "coordinates",0,0,1920,1080, "background1.png"]}]},
+        {"menu1": [{"button": ["create","backgroundbutton1", "coordinates",100,100,700,200, "title","background2", "color",[128,128,128], "command",{"image":["edit","img1", 0,0,1920,1080, "background2.png"]}]}]},
+        {"menu1": [{"button":["create","videobutton1", "coordinates",100,200,700,400, "title","video1", "color",[128,128,128], "command_click",[{"sound":["create","sound1", "sound1.opus", "volume",37]},{"teleport":["video1.mkv", "menu1.json"]}], "command4selection",{"button": ["edit","videobutton1", "coordinates",300,100,500,700, "title","video1", "color",[128,128,255]]}, "command4no_selection",{"button": ["edit","videobutton1", "coordinates",300,100,500,700, "title","video1", "color",[128,128,128]]}]}]},
+        {"menu1": [{"button_default": ["backgroundbutton1"]}]}
+    ],
+    "loop":[
+    ]
+}

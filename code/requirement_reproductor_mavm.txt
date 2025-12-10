@@ -1,0 +1,5 @@
+pymkv2==2.1.2
+argparse==1.4.0
+opencv-python
+python-vlc
+Pillow

@@ -63,13 +63,13 @@ class ventana:
         self.reproductor = tk.Frame(self.ventana_tk, bg='black')
         self.reproductor.place(x=0,y=20)
 
-        self.atras_boton = tk.Button(self.ventana_tk, text="<-10s", command=self.detectar_botones_fun_atra)
+        self.atras_boton = tk.Button(self.ventana_tk, text="<-10s", command=lambda: self.detectar_botones_fun("atras"))
         self.atras_boton.place(x=0,y=430,width=20,height=16)
 
-        self.adelante_boton = tk.Button(self.ventana_tk, text="10s->", command=self.detectar_botones_fun_adel)
+        self.adelante_boton = tk.Button(self.ventana_tk, text="10s->", command=lambda: self.detectar_botones_fun("adelante"))
         self.adelante_boton.place(x=780,y=430,width=20,height=16)
 
-        self.play_boton = tk.Button(self.ventana_tk, text="play/pause", command=self.detectar_botones_fun_stop)
+        self.play_boton = tk.Button(self.ventana_tk, text="play/pause", command=lambda: self.detectar_botones_fun("stop-play"))
         self.play_boton.place(x=780,y=430,width=20,height=16)
 
         self.ventana_tk.after(50, self.actalizar_medidas)
@@ -79,22 +79,6 @@ class ventana:
         if self.file:
             self.repdorucir()
     
-    def detectar_botones_fun(self, boton):
-        self.detectar_botones = ""
-        self.ventana_tk.after(110, detectar_botones_fun)
-
-    def detectar_botones_fun_atra(self):
-        self.detectar_botones = "atras"
-        self.ventana_tk.after(110, detectar_botones_fun)
-
-    def detectar_botones_fun_adel(self):
-        self.detectar_botones = "adelante"
-        self.ventana_tk.after(110, detectar_botones_fun)
-
-    def detectar_botones_fun_stop(self):
-        self.detectar_botones = "stop-play"
-        self.ventana_tk.after(110, detectar_botones_fun)
-
     def archivos_ventana(self):
         self.file = filedialog.askopenfilename(title='buscar video MaVM', filetypes=(('video MaVM', '*.mavm'),('todos los archivos', '*.*')))
         print(self.file)
@@ -454,9 +438,8 @@ class ventana:
                 diferencia_escala_espacio_mv = [espacio_mv_ancho/escala_ancho,espacio_mv_alto/escala_alto]
                 
                 for objeto in self.objetos_menu:
-                    if "video" in objeto.keys():
-                        cordenadas = [0,0,espacio_mv_ancho,espacio_mv_alto]
-                        
+                    cordenadas = objeto["cordenadas"]
+                    if "imagen" in objeto.keys():
                         ancho_imagen=int(cordenadas[2]*diferencia_escala_espacio_mv[0])-int(cordenadas[0]*diferencia_escala_espacio_mv[0])
                         alto_imagen=int(cordenadas[3]*diferencia_escala_espacio_mv[1])-int(cordenadas[1]*diferencia_escala_espacio_mv[1])
 
@@ -465,28 +448,14 @@ class ventana:
                         objeto["objeto"].config(image=imagen)
                         objeto["objeto"].image = imagen
 
+                        cordenadas = objeto["cordenadas"]
                         objeto["objeto"].place(x=int(cordenadas[0]*diferencia_escala_espacio_mv[0]),
                                             y=int(cordenadas[1]*diferencia_escala_espacio_mv[1]),
                                             width=int(cordenadas[2]*diferencia_escala_espacio_mv[0])-int(cordenadas[0]*diferencia_escala_espacio_mv[0]),
                                             height=int(cordenadas[3]*diferencia_escala_espacio_mv[1])-int(cordenadas[1]*diferencia_escala_espacio_mv[1]))
                     elif "imagen" in objeto.keys():
-                        cordenadas = objeto["cordenadas"]
-
-                        ancho_imagen=int(cordenadas[2]*diferencia_escala_espacio_mv[0])-int(cordenadas[0]*diferencia_escala_espacio_mv[0])
-                        alto_imagen=int(cordenadas[3]*diferencia_escala_espacio_mv[1])-int(cordenadas[1]*diferencia_escala_espacio_mv[1])
-
-                        imagen =  ImageTk.PhotoImage(objeto["imagen"].resize((ancho_imagen,alto_imagen), Image.Resampling.LANCZOS))
-
-                        objeto["objeto"].config(image=imagen)
-                        objeto["objeto"].image = imagen
-
-                        objeto["objeto"].place(x=int(cordenadas[0]*diferencia_escala_espacio_mv[0]),
-                                            y=int(cordenadas[1]*diferencia_escala_espacio_mv[1]),
-                                            width=int(cordenadas[2]*diferencia_escala_espacio_mv[0])-int(cordenadas[0]*diferencia_escala_espacio_mv[0]),
-                                            height=int(cordenadas[3]*diferencia_escala_espacio_mv[1])-int(cordenadas[1]*diferencia_escala_espacio_mv[1]))
+                        pass
                     else:
-                        cordenadas = objeto["cordenadas"]
-
                         objeto["objeto"].place(x=int(cordenadas[0]*diferencia_escala_espacio_mv[0]),
                                             y=int(cordenadas[1]*diferencia_escala_espacio_mv[1]),
                                             width=int(cordenadas[2]*diferencia_escala_espacio_mv[0])-int(cordenadas[0]*diferencia_escala_espacio_mv[0]),
@@ -509,6 +478,10 @@ class ventana:
             print(archivo)
         self.start()
 
+    def detectar_botones_fun(self, boton):
+        self.detectar_botones = boton
+        self.ventana_tk.after(110, lambda: detectar_botones_fun(""))
+
     def video(self,video_path):
         subprocess.run(['mpv', video_path])
 
@@ -525,36 +498,22 @@ class ventana:
             except:
                 widget.destroy()  #elimina cada widget
         
-        for widget in self.espacio_mv.winfo_children():
-            try:
-                if widget is self.espacio_mv:
-                    y = False
-                else: 
-                    widget.destroy()  #elimina cada widget
-            except:
-                widget.destroy()  #elimina cada widget
-        
-        archivo = os.path.basename(video_path)
+        file, extension = os.path.splitext(video_path)
 
-        file_name, extension = os.path.splitext(archivo)
-        
         try:
-            shutil.rmtree(os.path.join(self.carpeta_temporal_frames,file_name))
-            os.makedirs(os.path.join(self.carpeta_temporal_frames,file_name))
+            os.makedirs(os.path.join(self.carpeta_temporal_frames,file))
         except:
-            os.makedirs(os.path.join(self.carpeta_temporal_frames,file_name))
-        
-        subprocess.run(["ffmpeg","-i",video_path,"frame_%04d.png"], cwd=f"{os.path.join(self.carpeta_temporal_frames,file_name)}")
-        subprocess.run(["ffmpeg","-i",video_path,"-vn","-c:a","liboups",f"{file_name}.opus"], cwd=f"{self.carpeta_temporal_frames}")
+            shutil.rmtree(os.path.join(self.carpeta_temporal_frames,file))
+            os.makedirs(os.path.join(self.carpeta_temporal_frames,file))
+                    
+        subprocess.run(["ffmpeg","-i",video_path,"frame_%04d.png"], cwd=f"{os.path.join(self.carpeta_temporal_frames,file)}")
+        subprocess.run(["ffmpeg","-i",video_path,"-vn","-c:a","liboups",f"{file}.opus"], cwd=f"{self.carpeta_temporal_frames}")
         
         #subprocess.run(['mpv', video_path])
 
         fps = self.get_fps(video_path)
 
-        try:
-            audio = [True, pygame.mixer.Sound(os.path.join(self.carpeta_temporal_frames,f"{file_name}.opus"))]
-        except:
-            audio = [False]
+        audio = pygame.mixer.Sound(os.path.join(self.carpeta_temporal_frames,f"{file}.opus"))
         #audi0.set_volume(50/100)
 
         frames = sorted(os.listdir(f"{self.carpeta_temporal_frames}/{file_name}"))
@@ -569,21 +528,14 @@ class ventana:
         
         frame_num  = 0
         frames_num = len(frames)-1
-
-        self.objetos_menu.append({"objeto":tk.Label(self.espacio_mv), "video":archivo, "video_path":video_path, "imagen": None})
-        vid = len(self.objetos_menu)-1
-
-        if audio[0]:
-            audio[1].play()
-        
-        play = True
+        audio.play()
         while not(frame_num == frames_num):
             if frame_num == frames_num:
                 break
             elif play:
                 try:
-                    frame_file_path = os.path.join(os.path.join(self.carpeta_temporal_frames,file_name),frame)
-                    imagen_file = Image.open(frame_file_path)
+                    frame_file = os.path.join(os.path.join(self.carpeta_temporal_frames,file_name),frame)
+                    imagen_file = Image.open(frame_file)
                     imagen = ImageTk.PhotoImage(imagen_file)
                     self.objetos_menu[vid]["objeto"].image = imagen
                     self.objetos_menu[vid]["imagen"] = imagen_file
@@ -597,28 +549,23 @@ class ventana:
                     fotogramas_cambio = int(10*fps)
                     segundos_cambio = fotogramas_cambio/fps
                     if accion == "stop-play":
-                        if audio[0]:
-                            pygame.mixer.music.pause()
+                        pygame.mixer.music.pause()
                         play = False
                     elif accion == "adelante":
                         if (frame_num+fotogramas_cambio)>frames_num or (frame_num+fotogramas_cambio)==frames_num:
                             frame_num = frames_num
-                            if audio[0]:
-                                pygame.mixer.music.play(start=frame_num/fps)
+                            pygame.mixer.music.play(start=frame_num/fps)
                         else:
-                            if audio[0]:
-                                pos_actual = pygame.mixer.music.get_pos() / 1000
-                                pygame.mixer.music.play(start=pos_actual+segundos_cambio)
+                            pos_actual = pygame.mixer.music.get_pos() / 1000
+                            pygame.mixer.music.play(start=pos_actual+segundos_cambio)
                             frame_num += fotogramas_cambio
                     elif accion == "atras":
                         if (frame_num-fotogramas_cambio)<0 or (frame_num<fotogramas_cambio)==0:
                             frame_num = frames_num
-                            if audio[0]:
-                                pygame.mixer.music.play(start=frame_num/fps)
+                            pygame.mixer.music.play(start=frame_num/fps)
                         else:
-                            if audio[0]:
-                                pos_actual = pygame.mixer.music.get_pos() / 1000
-                                pygame.mixer.music.play(start=pos_actual-segundos_cambio)
+                            pos_actual = pygame.mixer.music.get_pos() / 1000
+                            pygame.mixer.music.play(start=pos_actual-segundos_cambio)
                             frame_num -= fotogramas_cambio
                     frame_num +=1
                 except:
@@ -627,8 +574,17 @@ class ventana:
                 accion = self.detectar_botones
                 if frame[0] == "stop-play":
                     play = True
-                    if audio[0]:
-                        pygame.mixer.music.unpause()
+                    pygame.mixer.music.unpause()
+                elif accion == "adelante":
+                    if (frame_num+fotogramas_cambio)>frames_num or (frame_num+fotogramas_cambio)==frames_num:
+                        frame_num = frames_num
+                    else:
+                        frame_num += fotogramas_cambio
+                elif accion == "atras":
+                    if (frame_num-fotogramas_cambio)<0 or (frame_num<fotogramas_cambio)==0:
+                        frame_num = frames_num
+                    else:
+                        rame_num -= fotogramas_cambio
 
 def args():
     parser = argparse.ArgumentParser(description="reproductor MaVM")

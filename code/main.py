@@ -454,8 +454,8 @@ class ventana:
                 diferencia_escala_espacio_mv = [espacio_mv_ancho/escala_ancho,espacio_mv_alto/escala_alto]
                 
                 for objeto in self.objetos_menu:
-                    if "video" in objeto.keys():
-                        cordenadas = [0,0,espacio_mv_ancho,espacio_mv_alto]
+                    if "video_r" in objeto.keys():
+                        cordenadas = [0,0,reproductor_ancho,reproductor_alto]
                         
                         ancho_imagen=int(cordenadas[2]*diferencia_escala_espacio_mv[0])-int(cordenadas[0]*diferencia_escala_espacio_mv[0])
                         alto_imagen=int(cordenadas[3]*diferencia_escala_espacio_mv[1])-int(cordenadas[1]*diferencia_escala_espacio_mv[1])
@@ -495,7 +495,7 @@ class ventana:
             self.reproductor.update_idletasks()
             self.espacio_mv.update_idletasks()
         except:
-            pass         
+            pass
         self.ventana_tk.after(10, self.menu_resize)
 
     def repdorucir(self):
@@ -570,65 +570,96 @@ class ventana:
         frame_num  = 0
         frames_num = len(frames)-1
 
-        self.objetos_menu.append({"objeto":tk.Label(self.espacio_mv), "video":archivo, "video_path":video_path, "imagen": None})
+        self.objetos_menu.append({"objeto":tk.Label(self.espacio_mv), "video_r":archivo, "video_path":video_path, "imagen": None})
         vid = len(self.objetos_menu)-1
 
         if audio[0]:
             audio[1].play()
         
-        play = True
-        while not(frame_num == frames_num):
-            if frame_num == frames_num:
-                break
+        self.video_b(fps=fps,frames=frames,file_name=file_name,vid=vid,frame_num=frame_num,frames_num=frame_num,audio=audio,play=True)
+
+    def video_b(self,fps,frames,file_name,vid,frame_num,frames_num,audio,play):
+        #play = True
+        #while not(frame_num == frames_num):
+            if not(frame_num == frames_num):
+                pass
             elif play:
                 try:
-                    frame_file_path = os.path.join(os.path.join(self.carpeta_temporal_frames,file_name),frame)
-                    imagen_file = Image.open(frame_file_path)
-                    imagen = ImageTk.PhotoImage(imagen_file)
-                    self.objetos_menu[vid]["objeto"].image = imagen
-                    self.objetos_menu[vid]["imagen"] = imagen_file
-                    self.used_vid[file_name][1] += 1
+                    frame = frames[frame_num]
+
+                    #frame_file_path = os.path.join(os.path.join(self.carpeta_temporal_frames,file_name),frame)
+                    #imagen_file = Image.open(frame_file_path)
+                    #imagen = ImageTk.PhotoImage(imagen_file)
+                    #self.objetos_menu[vid]["objeto"].image = imagen
+                    #self.objetos_menu[vid]["imagen"] = imagen_file
+                    #self.used_vid[file_name][1] += 1
             
                     segundos_por_fotograma = 1/fps
-                    for i in range(1,40):
-                        accion = self.detectar_botones
-                        time.sleep(segundos_por_fotograma/40)
                     print(frame)
                     fotogramas_cambio = int(10*fps)
                     segundos_cambio = fotogramas_cambio/fps
+
+                    self.ventana_tk.after(0, lambda: self.update_frame_vid_b(frame=frame,file_name=file_name,vid=vid))
+                    for i in range(1,40):
+                            time.sleep(segundos_por_fotograma/40)
+                            accion = self.detectar_botones
+                    
                     if accion == "stop-play":
                         if audio[0]:
-                            pygame.mixer.music.pause()
+                            audio[1].pause()
                         play = False
                     elif accion == "adelante":
                         if (frame_num+fotogramas_cambio)>frames_num or (frame_num+fotogramas_cambio)==frames_num:
                             frame_num = frames_num
                             if audio[0]:
-                                pygame.mixer.music.play(start=frame_num/fps)
+                                audio[1].play(start=frame_num/fps)
                         else:
                             if audio[0]:
                                 pos_actual = pygame.mixer.music.get_pos() / 1000
-                                pygame.mixer.music.play(start=pos_actual+segundos_cambio)
+                                audio[1].play(start=pos_actual+segundos_cambio)
                             frame_num += fotogramas_cambio
                     elif accion == "atras":
                         if (frame_num-fotogramas_cambio)<0 or (frame_num<fotogramas_cambio)==0:
                             frame_num = frames_num
                             if audio[0]:
-                                pygame.mixer.music.play(start=frame_num/fps)
+                                audio[1].play(start=frame_num/fps)
                         else:
                             if audio[0]:
                                 pos_actual = pygame.mixer.music.get_pos() / 1000
-                                pygame.mixer.music.play(start=pos_actual-segundos_cambio)
+                                audio[1].play(start=pos_actual-segundos_cambio)
                             frame_num -= fotogramas_cambio
-                    frame_num +=1
-                except:
-                    pass
+                    else:
+                        frame_num +=1
+
+                    self.ventana_tk.after(int(segundos_por_fotograma*1000), lambda: self.video_b(self,fps,frames,file_name,vid,frame_num,frames_num,audio,play))
+                except Exception as e:
+                    print(e)
             else:
                 accion = self.detectar_botones
                 if frame[0] == "stop-play":
                     play = True
                     if audio[0]:
-                        pygame.mixer.music.unpause()
+                        audio[1].unpause()
+    
+    def update_frame_vid_b(self, frame, file_name, vid):
+                print("video-r2")
+            #if self.used_vid[file_name][0] and self.get_frames_num(video_path) > self.used_vid[file_name][1]:
+                try:
+                    frame_file = os.path.join(os.path.join(self.carpeta_temporal_frames,file_name),frame)
+                    imagen_file = Image.open(frame_file)
+                    imagen = ImageTk.PhotoImage(imagen_file)
+                    self.objetos_menu[vid]["objeto"].image = imagen
+                    self.objetos_menu[vid]["imagen"] = imagen_file
+                    self.used_vid[file_name][1] += 1
+                    print(frame)
+                except Exception as e:
+                    print(e)
+            #else:
+             #   try:
+              #      self.used_vid[file_name][2].stop()
+               # except:
+                #    pass
+                #self.used_vid[file_name][0] = False
 
 def args():
     parser = argparse.ArgumentParser(description="reproductor MaVM")

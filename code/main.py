@@ -52,7 +52,7 @@ class ventana:
         self.resolution_menu = [False, None]
         self.detectar_botones = ""
         self.objetos_menu = []
-        self.video_repr = True
+        self.video_repr = False
         self.used_vid = {}
         self.menu_r = True
 
@@ -257,7 +257,8 @@ class ventana:
                     for i in range(len(self.objetos_menu)):
                         if "id" in self.objetos_menu[i].keys():
                             if self.objetos_menu[i]["id"] == comando[1]["edit"]:
-                                self.objetos_menu[i] = {"id":comando[1]["edit"],"objeto":self.objetos_menu[i]["objeto"].config(text=comando[1]["title"]), "cordenadas":comando[1]["coordinates"]}
+                                self.objetos_menu[i] = {"id":comando[1]["edit"],"objeto":self.objetos_menu[i]["objeto"], "cordenadas":comando[1]["coordinates"]}
+                                objetos_menu[i]["objeto"].config(text=comando[1]["title"])
             elif comando[0] == "sound":
                 print("TIPO:", type(comando[1]))
                 print("VALOR:", comando[1])
@@ -325,25 +326,55 @@ class ventana:
                                 print(self.objetos_menu[len(self.objetos_menu)-1])
             return t
 
-    def teleport(self, paths):
+
+    def teleport(self, paths, paths_b=None):
         print("h")
         print(paths)
         if type(paths) == type([]):
-            paths_num = len(paths)-1
-            path_num = 0
-            while not(path_num == paths_num):
-                if self.video_repr:
-                    self.teleport(paths[path_num])
-                    path_num += 1
-                if path_num == paths_num:
-                    break
+            for path_num in range(0,len(paths)-1):
+                self.teleport(paths[path_num])
         else:
             self.loop_comandos_on = False
             nombre, extension = os.path.splitext(paths)
             if extension == ".mkv":
                 self.menu_r = False
-                self.video(self.contenido_dat[paths])
-                self.menu_r = True
+                self.video_repr = True
+                self.video(self.contenido_dat[paths], paths_b)
+                #while self.video_repr:
+                 #   if not(self.video_repr):
+                  #      break
+            elif extension == ".json":
+                print("path_menu",self.contenido_dat[paths])
+                menu_f = open(self.contenido_dat[paths])
+                menu_t = menu_f.read()
+                menu_j = json.loads(menu_t)
+                menu_f.close()
+                print("menu:",menu_j)
+                time.sleep(16/1000)
+                self.menu(menu_j)
+
+    def _teleport(self, paths, paths_b=None):
+        print("h")
+        print(paths)
+        if type(paths) == type([]):
+            for path_num in range(0,len(paths)-1):
+                nombre, extension = os.path.splitext(paths[path_num])
+                if extension == ".mkv":
+                    if len(paths)-1>=path_num+1:
+                        self.teleport(paths[path_num], paths[path_num+1:])
+                        break
+                    else:
+                        self.teleport(paths[path_num],[])
+                        break
+                else:
+                    self.teleport(paths[path_num])
+        else:
+            self.loop_comandos_on = False
+            nombre, extension = os.path.splitext(paths)
+            if extension == ".mkv":
+                self.menu_r = False
+                self.video_repr = True
+                self.video(self.contenido_dat[paths], paths_b)
                 #while self.video_repr:
                  #   if not(self.video_repr):
                   #      break
@@ -523,7 +554,7 @@ class ventana:
     def video(self,video_path):
         subprocess.run(['mpv', video_path])
 
-    def _video(self,video_path):
+    def _video(self,video_path,paths):
         self.loop_comandos_on = False
         self.objetos_menu = []
         self.used_vid = {}
@@ -578,7 +609,7 @@ class ventana:
             pass
         print("vp", video_path)
         
-        frame_num  = 0
+        frame_num = -1
         print(frames)
         frames_num = len(frames)-1
 
@@ -590,38 +621,30 @@ class ventana:
             audio[1].play()
         
         self.video_repr = True
-        self.video_b(fps=fps,frames=frames,file_name=file_name,vid=vid,frame_num=frame_num,frames_num=frames_num,audio=audio,play=True)
-
-    def video_b(self,fps,frames,file_name,vid,frame_num,frames_num,audio,play):
+        self.video_b(fps=fps,frames=frames,file_name=file_name,vid=vid,frame_num=frame_num,frames_num=frames_num,audio=audio,play=True,paths=paths)
+    
+    def video_b(self,fps,frames,file_name,vid,frame_num,frames_num,audio,play,paths):
         #play = True
         #while not(frame_num == frames_num):
-        if self.video_repr:
+        #if not(frame_num == frames_num):
+        if frame_num == frames_num:
+            print("frame_num == frames_num")
+            self.video_repr = False
+            self.teleport(paths)
+            return
+        elif self.video_repr:
+            print("not(frame_num == frames_num)")
             segundos_por_fotograma = 1/fps
-            print(f"frame_num:{frame_num}\nframes_num:{frames_num}")
-            if frame_num == frames_num:
-                self.video_repr = False
-            elif play:
+            if play:
                 try:
+                    accion = self.detectar_botones
+                    
                     frame = frames[frame_num]
 
-                    frame_file_path = os.path.join(os.path.join(self.carpeta_temporal_frames,file_name),frame)
-                    imagen_file = Image.open(frame_file_path)
-                    imagen = ImageTk.PhotoImage(imagen_file)
-                    self.objetos_menu[vid]["objeto"].image = imagen
-                    self.objetos_menu[vid]["imagen"] = imagen_file
-                    self.used_vid[file_name][1] += 1
-            
                     print(frame)
                     fotogramas_cambio = int(10*fps)
                     segundos_cambio = fotogramas_cambio/fps
 
-                    #self.ventana_tk.after(0, lambda: self.update_frame_vid_b(frame=frame,file_name=file_name,vid=vid))
-                    #for i in range(1,40):
-                     #   time.sleep(segundos_por_fotograma/40)
-                      #  accion = self.detectar_botones
-                    time.sleep(segundos_por_fotograma/40)
-                    accion = self.detectar_botones
-                    
                     if accion == "stop-play":
                         if audio[0]:
                             audio[1].pause()
@@ -651,6 +674,21 @@ class ventana:
                         self.detectar_botones_fun()
                     else:
                         frame_num +=1
+                    
+                    print(f"frame_num:{frame_num}\nframes_num:{frames_num}")
+                    
+                    frame_file_path = os.path.join(os.path.join(self.carpeta_temporal_frames,file_name),frame)
+                    imagen_file = Image.open(frame_file_path)
+                    imagen = ImageTk.PhotoImage(imagen_file)
+                    self.objetos_menu[vid]["objeto"].image = imagen
+                    self.objetos_menu[vid]["imagen"] = imagen_file
+                    self.used_vid[file_name][1] += 1
+            
+                    #self.ventana_tk.after(0, lambda: self.update_frame_vid_b(frame=frame,file_name=file_name,vid=vid))
+                    #for i in range(1,40):
+                     #   time.sleep(segundos_por_fotograma/40)
+                      #  accion = self.detectar_botones
+                    #time.sleep(segundos_por_fotograma/40)
                 except Exception as e:
                     print(e)
             else:
@@ -662,10 +700,17 @@ class ventana:
                     self.detectar_botones_fun()
             
             #time.sleep(segundos_por_fotograma)
+            print("self.menu_resize()")
             self.menu_resize()
+            print("self.reproductor.update_idletasks()")
             self.reproductor.update_idletasks()
+            print("self.espacio_mv.update_idletasks()")
             self.espacio_mv.update_idletasks()
-            self.ventana_tk.after(int(segundos_por_fotograma*1000), lambda: self.video_b(fps,frames,file_name,vid,frame_num,frames_num,audio,play))
+            print(int(segundos_por_fotograma*1000))
+            #time.sleep(segundos_por_fotograma)
+            #self.video_b(fps,frames,file_name,vid,frame_num,frames_num,audio,play,paths)
+            print("self.ventana_tk.after(int(segundos_por_fotograma*1000), lambda: self.video_b(fps,frames,file_name,vid,frame_num,frames_num,audio,play,paths))")
+            self.ventana_tk.after(int(segundos_por_fotograma*1000), lambda: self.video_b(fps,frames,file_name,vid,frame_num,frames_num,audio,play,paths))
             
             #self.video_b(fps,frames,file_name,vid,frame_num,frames_num,audio,play)
     
